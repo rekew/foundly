@@ -117,6 +117,17 @@ uv run ruff check .
 uv run ruff format .
 ```
 
+## Import formatting
+
+Ruff's isort integration sorts imports and inserts section headings for Python modules, FastAPI, database, validation, third-party, and project imports.
+
+```bash
+uv run ruff check --select I --fix .
+uv run ruff format .
+```
+
+The same commands run from the repository root with `pnpm format`.
+
 ## uv commands
 
 ```bash

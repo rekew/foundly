@@ -102,6 +102,32 @@ The frontend is available at `http://localhost:5173` by default.
 
 ## Common commands
 
+### Repository root
+
+```bash
+pnpm format        # Format frontend and backend, including import sorting
+pnpm format:check  # Verify formatting without changing files
+pnpm lint          # Lint frontend and backend
+```
+
+The backend formatter also adds section headings to Python imports:
+
+```python
+# Python Modules
+import asyncio
+
+# FastAPI Modules
+from fastapi import FastAPI
+
+# Third-Party Modules
+import jwt
+
+# Project Modules
+from app.core.config import settings
+```
+
+The frontend formatter sorts JavaScript imports into React, third-party, and local groups separated by blank lines.
+
 ### Frontend
 
 ```bash

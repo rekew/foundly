@@ -6,11 +6,12 @@ Create Date: 2026-11-27 00:00:00.000000
 
 """
 
+# Python Modules
 from collections.abc import Sequence
 from typing import Union
 
+# Database Modules
 import sqlalchemy as sa
-
 from alembic import op
 
 revision: str = "0001_create_users"

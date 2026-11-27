@@ -29,6 +29,7 @@ The frontend is a React single-page application built with Vite and JavaScript. 
 - `@vitejs/plugin-react`
 - Oxlint
 - Prettier
+- `@ianvs/prettier-plugin-sort-imports`
 
 ## Getting started
 
@@ -129,5 +130,6 @@ Feature-specific components, hooks, and state should stay inside their feature f
 - **Tailwind CSS** is enabled through `@tailwindcss/vite` and imported in `src/index.css`.
 - **Oxlint** checks React rules and general JavaScript issues.
 - **Prettier** handles formatting using the configuration in `.prettierrc.json`.
+- **Prettier import sorting** groups React, third-party, and local imports, with blank lines between groups.
 
-Run `pnpm lint` and `pnpm format:check` before submitting changes.
+Run `pnpm lint` and `pnpm format:check` before submitting changes. From the repository root, use `pnpm format`, `pnpm format:check`, and `pnpm lint` to run both applications.

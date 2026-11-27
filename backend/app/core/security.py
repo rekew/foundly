@@ -1,9 +1,12 @@
+# Python Modules
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+# Third-Party Modules
 import jwt
 from pwdlib import PasswordHash
 
+# Project Modules
 from app.core.config import settings
 
 ALGORITHM = "HS256"

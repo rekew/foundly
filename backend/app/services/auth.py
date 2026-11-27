@@ -1,8 +1,11 @@
+# Python Modules
 from typing import Optional
 
+# Database Modules
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Project Modules
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate

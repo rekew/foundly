@@ -32,6 +32,25 @@ module-root = ""
 # FastAPI evaluates annotations at runtime on Python 3.9.
 ignore = ["FA100"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+section-order = [
+    "future",
+    "standard-library",
+    "fastapi",
+    "database",
+    "validation",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+import-heading = { future = "Future Imports", standard-library = "Python Modules", fastapi = "FastAPI Modules", database = "Database Modules", validation = "Validation Modules", third-party = "Third-Party Modules", first-party = "Project Modules", local-folder = "Local Modules" }
+
+[tool.ruff.lint.isort.sections]
+fastapi = ["fastapi", "starlette", "uvicorn"]
+database = ["sqlalchemy", "alembic", "asyncpg", "aiosqlite"]
+validation = ["pydantic", "pydantic_settings"]
+
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
