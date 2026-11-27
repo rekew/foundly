@@ -4,13 +4,13 @@ Foundly is a full-stack university project consisting of a React single-page app
 
 ## Technology stack
 
-| Layer      | Technology                                                                 |
-| ---------- | -------------------------------------------------------------------------- |
-| Frontend   | React, Vite, JavaScript, Tailwind CSS, Jotai, TanStack Query, Axios         |
-| Forms      | React Hook Form, Zod                                                       |
-| Frontend tooling | Oxlint, Prettier                                                     |
-| Backend    | Python, FastAPI, SQLAlchemy (async), PostgreSQL, Alembic                   |
-| Backend tooling | uv, Ruff, pytest                                                      |
+| Layer            | Technology                                                          |
+| ---------------- | ------------------------------------------------------------------- |
+| Frontend         | React, Vite, JavaScript, Tailwind CSS, Jotai, TanStack Query, Axios |
+| Forms            | React Hook Form, Zod                                                |
+| Frontend tooling | Oxlint, Prettier                                                    |
+| Backend          | Python, FastAPI, SQLAlchemy (async), PostgreSQL, Alembic            |
+| Backend tooling  | uv, Ruff, pytest                                                    |
 
 ## Project structure
 
@@ -59,20 +59,22 @@ pnpm install
 
 ### Frontend
 
-| Variable       | Description                 | Default                 |
-| -------------- | --------------------------- | ----------------------- |
-| `VITE_API_URL` | Base URL of the backend API | `http://localhost:8000` |
+| Variable       | Description                                               | Default                        |
+| -------------- | --------------------------------------------------------- | ------------------------------ |
+| `VITE_API_URL` | Base URL of the backend API, including the version prefix | `http://localhost:8000/api/v1` |
 
 ### Backend
 
-| Variable                     | Description                                | Default                                                       |
-| ---------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
-| `APP_NAME`                   | Application name                           | `Foundly`                                                     |
-| `ENVIRONMENT`                | Runtime environment                        | `development`                                                 |
-| `DATABASE_URL`               | Async PostgreSQL connection string         | `postgresql+asyncpg://postgres:postgres@localhost:5432/foundly` |
-| `SECRET_KEY`                 | Secret used to sign authentication tokens  | `change-me-in-production`                                     |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime in minutes          | `30`                                                          |
-| `CORS_ORIGINS`               | Allowed frontend origins                   | `http://localhost:5173`                                       |
+| Variable                      | Description                               | Default                                                         |
+| ----------------------------- | ----------------------------------------- | --------------------------------------------------------------- |
+| `APP_NAME`                    | Application name                          | `Foundly`                                                       |
+| `ENVIRONMENT`                 | Runtime environment                       | `development`                                                   |
+| `DATABASE_URL`                | Async PostgreSQL connection string        | `postgresql+asyncpg://postgres:postgres@localhost:5432/foundly` |
+| `SECRET_KEY`                  | Secret used to sign authentication tokens | `change-me-in-production-use-a-long-random-value`               |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime in minutes          | `30`                                                            |
+| `CORS_ORIGINS`                | Allowed frontend origins                  | `http://localhost:5173`                                         |
+| `COOKIE_SECURE`               | Send the auth cookie only over HTTPS      | `false`                                                         |
+| `COOKIE_SAMESITE`             | SameSite policy for the auth cookie       | `lax`                                                           |
 
 Copy each `.env.example` file to `.env` before starting the applications. Never commit `.env` files.
 
@@ -84,10 +86,10 @@ Run the backend and frontend in separate terminals.
 
 ```bash
 cd backend
-uv run fastapi dev app/main.py
+uv run uvicorn app.main:app --reload
 ```
 
-The FastAPI entry point (`app/main.py`) will be added when application features are implemented.
+The API is exposed under `/api/v1`, and authentication uses an httpOnly cookie.
 
 ### Frontend
 
@@ -115,7 +117,7 @@ pnpm format:check # Check formatting with Prettier
 
 ```bash
 uv sync                    # Install dependencies
-uv run fastapi dev app/main.py  # Start the development server
+uv run uvicorn app.main:app --reload  # Start the development server
 uv run pytest              # Run tests
 uv run ruff check .        # Lint Python code
 uv run ruff format .       # Format Python code
@@ -125,7 +127,8 @@ See the [frontend README](frontend/README.md) and [backend README](backend/READM
 
 ## Deployment overview
 
-- **Frontend:** run `pnpm build` and deploy the generated `dist/` directory to a static host such as Vercel, Netlify, or Cloudflare Pages. Set `VITE_API_URL` to the public backend URL during the build.
+- **Frontend:** run `pnpm build` and deploy the generated `dist/` directory to a static host such as Vercel, Netlify, or Cloudflare Pages. Set `VITE_API_URL` to the public backend URL including `/api/v1` during the build.
 - **Backend:** deploy the FastAPI application with Uvicorn (for example on Render, Railway, Fly.io, or a container platform). Install dependencies with `uv sync --frozen --no-dev`, provide the production environment variables, and run `uv run uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 - **Database:** use a managed PostgreSQL instance, set `DATABASE_URL` to its async connection string, and apply migrations with `uv run alembic upgrade head` before starting the API.
 - **Configuration:** keep production secrets in the hosting platform's environment settings and restrict `CORS_ORIGINS` to the deployed frontend URL.
+- **Cookies:** set `COOKIE_SECURE=true` in production. If the frontend and backend are on different sites, also set `COOKIE_SAMESITE=none` and add CSRF protection for cookie-authenticated state-changing requests.

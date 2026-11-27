@@ -43,11 +43,51 @@ The development server runs at `http://localhost:5173` by default.
 
 ## Environment variables
 
-| Variable       | Description                 | Default                 |
-| -------------- | --------------------------- | ----------------------- |
-| `VITE_API_URL` | Base URL of the backend API | `http://localhost:8000` |
+| Variable       | Description                                               | Default                        |
+| -------------- | --------------------------------------------------------- | ------------------------------ |
+| `VITE_API_URL` | Base URL of the backend API, including the version prefix | `http://localhost:8000/api/v1` |
 
 Variables must be prefixed with `VITE_` to be exposed to the client. Copy `.env.example` to `.env` and adjust values as needed. Do not commit `.env`.
+
+## API client
+
+All HTTP requests go through the shared Axios instance in `src/services/apiClient.js`.
+
+- `withCredentials` is enabled, so the backend's httpOnly auth cookie is sent automatically.
+- Responses resolve to the parsed response body.
+- Errors are always normalized to `ApiError` from `src/services/apiError.js`.
+- Axios `signal` is passed through, so requests can be cancelled with `AbortController`.
+
+Example service usage from `src/services/auth.service.js`:
+
+```js
+import { getCurrentUser, login, logout } from './auth.service'
+
+const controller = new AbortController()
+
+try {
+  const user = await login({
+    email: 'student@example.com',
+    password: 'password123',
+    signal: controller.signal,
+  })
+  console.log(user)
+
+  const currentUser = await getCurrentUser({ signal: controller.signal })
+  console.log(currentUser)
+
+  await logout()
+} catch (error) {
+  if (error.code === 'ABORTED') {
+    return
+  }
+
+  // error.status, error.code, error.message and error.details
+  console.error(error)
+}
+```
+
+Do not call Axios directly from components or feature code. Add resource-specific functions to `src/services/` or the relevant feature instead.
 
 ## Scripts
 
