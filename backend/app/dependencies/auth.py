@@ -1,8 +1,13 @@
+# Python Modules
 from typing import Annotated, Optional
 
+# FastAPI Modules
 from fastapi import Cookie, Depends, HTTPException, status
+
+# Database Modules
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Project Modules
 from app.core.config import settings
 from app.core.security import decode_access_token
 from app.database.session import get_db

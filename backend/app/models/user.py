@@ -1,8 +1,11 @@
+# Python Modules
 from datetime import datetime
 
+# Database Modules
 from sqlalchemy import Boolean, DateTime, String, func, true
 from sqlalchemy.orm import Mapped, mapped_column
 
+# Project Modules
 from app.database.base import Base
 
 

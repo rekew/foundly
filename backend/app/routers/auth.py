@@ -1,9 +1,14 @@
+# Python Modules
 from typing import Annotated
 
+# FastAPI Modules
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+
+# Database Modules
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Project Modules
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.database.session import get_db

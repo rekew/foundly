@@ -1,0 +1,9 @@
+{
+  "name": "foundly",
+  "private": true,
+  "scripts": {
+    "format": "pnpm --dir frontend format && cd backend && uv run ruff check --select I --fix . && uv run ruff format .",
+    "format:check": "pnpm --dir frontend format:check && cd backend && uv run ruff check --select I . && uv run ruff format --check .",
+    "lint": "pnpm --dir frontend lint && cd backend && uv run ruff check ."
+  }
+}
