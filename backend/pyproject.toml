@@ -28,6 +28,10 @@ build-backend = "uv_build"
 module-name = "app"
 module-root = ""
 
+[tool.ruff.lint]
+# FastAPI evaluates annotations at runtime on Python 3.9.
+ignore = ["FA100"]
+
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
