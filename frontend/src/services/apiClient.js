@@ -16,7 +16,27 @@ export const apiClient = axios.create({
   },
 })
 
+let unauthorizedHandler = null
+
+/**
+ * Register a callback for 401 responses from non-auth endpoints, i.e. the
+ * session cookie expired or was revoked mid-session. Returns an unsubscribe.
+ */
+export function onUnauthorized(handler) {
+  unauthorizedHandler = handler
+  return () => {
+    if (unauthorizedHandler === handler) unauthorizedHandler = null
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response.data,
-  (error) => Promise.reject(toApiError(error)),
+  (error) => {
+    const apiError = toApiError(error)
+    const url = error.config?.url ?? ''
+    if (apiError.status === 401 && !url.startsWith('/auth/')) {
+      unauthorizedHandler?.(apiError)
+    }
+    return Promise.reject(apiError)
+  },
 )

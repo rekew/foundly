@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
-import { ArrowLeft, ArrowRight, Search, SearchX } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  LayoutGrid,
+  Rows3,
+  Search,
+  SearchX,
+} from 'lucide-react'
 
 import { EmptyState } from '../components/common/EmptyState'
 import { ErrorState } from '../components/common/ErrorState'
@@ -13,8 +20,9 @@ import { useCurrentUser } from '../features/auth/queries'
 import { CATEGORIES } from '../features/items/categories'
 import { ItemCard } from '../features/items/ItemCard'
 import { useItems } from '../features/items/queries'
+import { usePreferences } from '../features/preferences/usePreferences'
+import { PAGE_SIZES } from '../store'
 
-const PAGE_SIZE = 12
 const STATUS_FILTERS = [
   { value: 'open', label: 'Waiting for owner' },
   { value: 'returned', label: 'Returned' },
@@ -45,14 +53,20 @@ export function HomePage() {
   const category = searchParams.get('category') ?? ''
   const status = searchParams.get('status') ?? 'open'
   const page = Math.max(1, Number(searchParams.get('page')) || 1)
+  const { preferences, update: updatePreferences } = usePreferences()
+  const urlLimit = Number(searchParams.get('limit'))
+  const pageSize = PAGE_SIZES.includes(urlLimit)
+    ? urlLimit
+    : preferences.pageSize
+  const compact = preferences.cardDensity === 'compact'
   const [draft, setDraft] = useState(q)
 
   const items = useItems({
     q,
     category,
     status: status === 'all' ? '' : status,
-    limit: PAGE_SIZE,
-    offset: (page - 1) * PAGE_SIZE,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
   })
 
   const update = (changes) => {
@@ -65,7 +79,7 @@ export function HomePage() {
   }
 
   const total = items.data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const hasFilters = q || category || status !== 'open'
 
   return (
@@ -144,24 +158,64 @@ export function HomePage() {
             {items.isSuccess &&
               `${total} ${total === 1 ? 'item' : 'items'}${q ? ` matching “${q}”` : ''}`}
           </p>
-          <div className="flex rounded-lg border border-line bg-white p-0.5">
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                aria-pressed={status === f.value}
-                onClick={() =>
-                  update({ status: f.value === 'open' ? '' : f.value })
-                }
-                className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-                  status === f.value
-                    ? 'bg-brand-50 font-medium text-brand-700'
-                    : 'text-muted hover:text-ink'
-                }`}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Per page
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  const size = Number(e.target.value)
+                  updatePreferences({ pageSize: size })
+                  update({ limit: size })
+                }}
+                className="h-9 rounded-lg border border-line bg-white px-2 text-sm text-ink"
               >
-                {f.label}
-              </button>
-            ))}
+                {PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() =>
+                updatePreferences({
+                  cardDensity: compact ? 'comfortable' : 'compact',
+                })
+              }
+              aria-pressed={compact}
+              aria-label={
+                compact ? 'Show detailed cards' : 'Show compact cards'
+              }
+              title={compact ? 'Show detailed cards' : 'Show compact cards'}
+              className="flex size-9 items-center justify-center rounded-lg border border-line bg-white text-muted hover:text-ink"
+            >
+              {compact ? (
+                <LayoutGrid className="size-4" aria-hidden />
+              ) : (
+                <Rows3 className="size-4" aria-hidden />
+              )}
+            </button>
+            <div className="flex rounded-lg border border-line bg-white p-0.5">
+              {STATUS_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  aria-pressed={status === f.value}
+                  onClick={() =>
+                    update({ status: f.value === 'open' ? '' : f.value })
+                  }
+                  className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                    status === f.value
+                      ? 'bg-brand-50 font-medium text-brand-700'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -193,12 +247,14 @@ export function HomePage() {
         ) : (
           <>
             <div
-              className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${
-                items.isPlaceholderData ? 'opacity-60' : ''
-              }`}
+              className={`grid ${
+                compact
+                  ? 'gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  : 'gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+              } ${items.isPlaceholderData ? 'opacity-60' : ''}`}
             >
               {items.data.items.map((item) => (
-                <ItemCard key={item.id} item={item} />
+                <ItemCard key={item.id} item={item} compact={compact} />
               ))}
             </div>
             {pageCount > 1 && (
