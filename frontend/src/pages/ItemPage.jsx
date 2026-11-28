@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router'
 
+import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   Calendar,
@@ -7,6 +8,7 @@ import {
   Mail,
   MapPin,
   Pencil,
+  RotateCcw,
   Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,11 +22,19 @@ import { useCurrentUser } from '../features/auth/queries'
 import { ClaimForm } from '../features/claims/ClaimForm'
 import { ClaimStatusBadge } from '../features/claims/ClaimStatusBadge'
 import { ItemClaimsPanel } from '../features/claims/ItemClaimsPanel'
-import { useMyClaims, useWithdrawClaim } from '../features/claims/queries'
+import {
+  claimKeys,
+  useMyClaims,
+  useWithdrawClaim,
+} from '../features/claims/queries'
 import { getCategory } from '../features/items/categories'
 import { ItemImage } from '../features/items/ItemImage'
 import { ItemStatusBadge } from '../features/items/ItemStatusBadge'
-import { useDeleteItem, useItem } from '../features/items/queries'
+import {
+  useDeleteItem,
+  useItem,
+  useUpdateItem,
+} from '../features/items/queries'
 import { getErrorMessage } from '../utils/errors'
 import { formatDate, formatDateTime } from '../utils/format'
 
@@ -136,7 +146,32 @@ function ClaimantPanel({ item, user }) {
 
 function FinderPanel({ item }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const deleteItem = useDeleteItem()
+  const updateItem = useUpdateItem(item.id)
+  const isReturned = item.status === 'returned'
+
+  const onToggleStatus = () => {
+    if (
+      !isReturned &&
+      !window.confirm(
+        'Mark this item as returned? Any pending claims will be declined.',
+      )
+    )
+      return
+    updateItem.mutate(
+      { status: isReturned ? 'open' : 'returned' },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: claimKeys.forItem(item.id),
+          })
+          toast.success(isReturned ? 'Listing reopened' : 'Marked as returned')
+        },
+        onError: (error) => toast.error(getErrorMessage(error)),
+      },
+    )
+  }
 
   const onDelete = () => {
     if (!window.confirm('Delete this listing? This cannot be undone.')) return
@@ -169,6 +204,22 @@ function FinderPanel({ item }) {
             <Trash2 className="size-4" aria-hidden /> Delete
           </Button>
         </div>
+        <Button
+          variant={isReturned ? 'secondary' : undefined}
+          className="mt-2 w-full"
+          loading={updateItem.isPending}
+          onClick={onToggleStatus}
+        >
+          {isReturned ? (
+            <>
+              <RotateCcw className="size-4" aria-hidden /> Reopen listing
+            </>
+          ) : (
+            <>
+              <CircleCheck className="size-4" aria-hidden /> Mark as returned
+            </>
+          )}
+        </Button>
       </Panel>
       <Panel title="Claims">
         <ItemClaimsPanel item={item} />

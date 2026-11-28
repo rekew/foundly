@@ -73,3 +73,47 @@ async def test_item_validation(make_client):
         await finder.post("/items", json={**ITEM, "category": "spaceship"})
     ).status_code == 422
     assert (await finder.post("/items", json={**ITEM, "title": "a"})).status_code == 422
+
+
+async def test_finder_marks_item_returned_and_reopens(make_client):
+    finder = await make_client("finder@example.com")
+    other = await make_client("other@example.com")
+    item = (await finder.post("/items", json=ITEM)).json()
+    url = f"/items/{item['id']}"
+
+    claim = (
+        await other.post(
+            f"{url}/claims",
+            json={"message": "It has my student card with the name Ann Lee inside."},
+        )
+    ).json()
+
+    assert (await other.patch(url, json={"status": "returned"})).status_code == 403
+
+    res = await finder.patch(url, json={"status": "returned"})
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "returned"
+    claims = (await finder.get(f"{url}/claims")).json()
+    assert {c["id"]: c["status"] for c in claims} == {claim["id"]: "rejected"}
+
+    res = await finder.patch(url, json={"status": "open"})
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "open"
+
+
+async def test_cannot_reopen_item_with_approved_claim(make_client):
+    finder = await make_client("finder@example.com")
+    owner = await make_client("owner@example.com")
+    item = (await finder.post("/items", json=ITEM)).json()
+    url = f"/items/{item['id']}"
+
+    claim = (
+        await owner.post(
+            f"{url}/claims",
+            json={"message": "It has my student card with the name Ann Lee inside."},
+        )
+    ).json()
+    assert (await finder.post(f"/claims/{claim['id']}/approve")).status_code == 200
+
+    assert (await finder.patch(url, json={"status": "open"})).status_code == 409
+    assert (await finder.get(url)).json()["status"] == "returned"
