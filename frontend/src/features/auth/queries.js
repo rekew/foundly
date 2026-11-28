@@ -1,12 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAtomValue, useSetAtom } from 'jotai'
 
 import * as authService from '../../services/auth.service'
+import {
+  sessionAtom,
+  sessionLoadingAtom,
+  setSessionUserAtom,
+} from '../../store'
 import { isUnauthorized } from '../../utils/errors'
 
 export const meQueryKey = ['me']
 
-export function useCurrentUser() {
-  const query = useQuery({
+/** Drop cached data that belongs to the previous account. */
+export function clearPrivateQueries(queryClient) {
+  queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' })
+}
+
+/**
+ * Fetch `/auth/me`. Only `AuthSync` subscribes to this; everything else reads
+ * the session from the store via `useCurrentUser`.
+ */
+export function useMeQuery() {
+  return useQuery({
     queryKey: meQueryKey,
     queryFn: async ({ signal }) => {
       try {
@@ -19,22 +34,46 @@ export function useCurrentUser() {
     staleTime: 5 * 60 * 1000,
     retry: false,
   })
+}
 
+/** The signed-in user, read from the global session atom. */
+export function useCurrentUser() {
+  const session = useAtomValue(sessionAtom)
   return {
-    user: query.data ?? null,
-    isLoading: query.isPending,
-    error: query.error,
+    user: session.user,
+    status: session.status,
+    isAuthenticated: session.status === 'authenticated',
+    isLoading: session.status === 'loading',
+    error: session.error,
+  }
+}
+
+/** Re-check the session after the start-up check failed. */
+export function useRetrySession() {
+  const queryClient = useQueryClient()
+  const setLoading = useSetAtom(sessionLoadingAtom)
+  return () => {
+    setLoading()
+    queryClient.refetchQueries({ queryKey: meQueryKey })
+  }
+}
+
+/** Put both the store and the `/me` cache on the same user in one step. */
+function useApplySession() {
+  const queryClient = useQueryClient()
+  const setSessionUser = useSetAtom(setSessionUserAtom)
+  return (user) => {
+    clearPrivateQueries(queryClient)
+    queryClient.setQueryData(meQueryKey, user)
+    setSessionUser(user)
   }
 }
 
 export function useLogin() {
-  const queryClient = useQueryClient()
+  const applySession = useApplySession()
   return useMutation({
     mutationFn: (credentials) => authService.login(credentials),
-    onSuccess: (user) => {
-      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' })
-      queryClient.setQueryData(meQueryKey, user)
-    },
+    onSuccess: (user) => applySession(user),
   })
 }
 
@@ -49,12 +88,9 @@ export function useRegister() {
 }
 
 export function useLogout() {
-  const queryClient = useQueryClient()
+  const applySession = useApplySession()
   return useMutation({
     mutationFn: () => authService.logout(),
-    onSettled: () => {
-      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' })
-      queryClient.setQueryData(meQueryKey, null)
-    },
+    onSettled: () => applySession(null),
   })
 }
