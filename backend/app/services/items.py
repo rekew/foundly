@@ -2,14 +2,15 @@
 from typing import Optional
 
 # Database Modules
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Project Modules
+from app.models.claim import Claim, ClaimStatus
 from app.models.item import Item, ItemCategory, ItemStatus
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemUpdate
-from app.services.errors import NotFoundError, PermissionDeniedError
+from app.services.errors import ConflictError, NotFoundError, PermissionDeniedError
 
 
 def _escape_like(value: str) -> str:
@@ -86,6 +87,9 @@ async def update_item(
     data = payload.model_dump(exclude_unset=True)
     if "image_url" in data and data["image_url"] is not None:
         data["image_url"] = str(data["image_url"])
+    new_status = data.pop("status", None)
+    if new_status is not None and new_status != item.status:
+        await _apply_status_change(db, item, new_status)
     for field, value in data.items():
         if value is None and field != "image_url":
             continue
@@ -93,6 +97,30 @@ async def update_item(
     await db.commit()
     await db.refresh(item)
     return item
+
+
+async def _apply_status_change(
+    db: AsyncSession, item: Item, new_status: ItemStatus
+) -> None:
+    if new_status == ItemStatus.returned:
+        # Returned outside the app: close out any claims still waiting for review.
+        await db.execute(
+            update(Claim)
+            .where(Claim.item_id == item.id, Claim.status == ClaimStatus.pending)
+            .values(status=ClaimStatus.rejected)
+            .execution_options(synchronize_session=False)
+        )
+    else:
+        approved = await db.scalar(
+            select(Claim.id).where(
+                Claim.item_id == item.id, Claim.status == ClaimStatus.approved
+            )
+        )
+        if approved is not None:
+            raise ConflictError(
+                "This item was returned through an approved claim and cannot be reopened"
+            )
+    item.status = new_status
 
 
 async def delete_item(db: AsyncSession, item_id: int, user: User) -> None:
