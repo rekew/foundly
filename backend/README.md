@@ -68,7 +68,7 @@ Update `DATABASE_URL` in `.env` if your username, password, host, port, or datab
 
 ## Migrations
 
-Alembic configuration is available in `alembic.ini`, with migrations stored in `alembic/`. The initial migration creates the `users` table.
+Alembic configuration is available in `alembic.ini`, with migrations stored in `alembic/`. `0001` creates the `users` table and `0002` creates `items` and `claims`.
 
 Use:
 
@@ -105,6 +105,25 @@ All routes are exposed under `/api/v1`. Authentication uses a JWT stored in an h
 | `POST` | `/api/v1/auth/logout`   | Clear the auth cookie                         |
 | `GET`  | `/api/v1/auth/me`       | Return the current user                       |
 
+| Method   | Path                          | Auth     | Description                                                                  |
+| -------- | ----------------------------- | -------- | ---------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/items`               | Public   | List found items. Query: `q`, `category`, `status`, `limit` (≤50), `offset`  |
+| `GET`    | `/api/v1/items/mine`          | User     | Items reported by the current user                                           |
+| `POST`   | `/api/v1/items`               | User     | Report a found item                                                          |
+| `GET`    | `/api/v1/items/{id}`          | Public   | Item details                                                                 |
+| `PATCH`  | `/api/v1/items/{id}`          | Finder   | Update an item (partial)                                                     |
+| `DELETE` | `/api/v1/items/{id}`          | Finder   | Delete an item and its claims                                                |
+| `GET`    | `/api/v1/items/{id}/claims`   | Finder   | Claims on an item, with claimant email                                       |
+| `POST`   | `/api/v1/items/{id}/claims`   | User     | Claim an item with `{ message }` proof of ownership                          |
+| `GET`    | `/api/v1/claims/mine`         | User     | My claims with item details. `finder_email` is set once approved             |
+| `POST`   | `/api/v1/claims/{id}/approve` | Finder   | Approve a claim. Marks the item `returned` and declines other pending claims |
+| `POST`   | `/api/v1/claims/{id}/reject`  | Finder   | Decline a pending claim                                                      |
+| `DELETE` | `/api/v1/claims/{id}`         | Claimant | Withdraw a pending claim                                                     |
+
+Categories: `electronics`, `wallets`, `keys`, `bags`, `clothing`, `documents`, `jewelry`, `other`. Item status: `open`, `returned`. Claim status: `pending`, `approved`, `rejected`.
+
+Business rules: finders cannot claim their own items, returned items cannot be claimed, a user can hold only one active (pending or approved) claim per item, and only pending claims can be reviewed or withdrawn. Rule violations return `403`, `404` or `409` with `{ "detail": ... }`. Email addresses stay private except between a finder and their claimants.
+
 Successful responses are returned as raw JSON objects. Errors use FastAPI's standard `{ "detail": ... }` shape.
 
 Set `COOKIE_SECURE=true` in production. If the frontend runs on a different site than the backend, use `COOKIE_SAMESITE=none` together with HTTPS and add CSRF protection.
@@ -112,7 +131,7 @@ Set `COOKIE_SECURE=true` in production. If the frontend runs on a different site
 ## Testing and linting
 
 ```bash
-uv run pytest
+uv run pytest              # API tests run against in-memory SQLite, no PostgreSQL needed
 uv run ruff check .
 uv run ruff format .
 ```
