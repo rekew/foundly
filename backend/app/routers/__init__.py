@@ -1,4 +1,4 @@
 # Project Modules
-from app.routers import auth, health
+from app.routers import auth, claims, health, items
 
-__all__ = ["auth", "health"]
+__all__ = ["auth", "claims", "health", "items"]
