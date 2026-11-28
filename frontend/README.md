@@ -90,6 +90,40 @@ try {
 
 Do not call Axios directly from components or feature code. Add resource-specific functions to `src/services/` or the relevant feature instead.
 
+### Domain services
+
+| Module                                  | Operations                                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/services/auth.service.js`          | `register`, `login`, `logout`, `getCurrentUser`                                                 |
+| `src/services/items.service.js`         | `listItems`, `listMyItems`, `getItemById`, `createItem`, `updateItem`, `deleteItem`             |
+| `src/services/claims.service.js`        | `createClaim`, `listItemClaims`, `listMyClaims`, `approveClaim`, `rejectClaim`, `withdrawClaim` |
+| `src/services/recoveryCases.service.js` | `listRecoveryCases`, `getRecoveryCaseById` (contract gap, see below)                            |
+
+Feature code does not call services directly from components. It goes through TanStack Query hooks in `src/features/*/queries.js`, which own the query keys and cache invalidation.
+
+Recovery cases have no backend yet. That service still rejects with `ContractGapError` (`code: 'CONTRACT_GAP'`, from `src/services/contractGap.js`). Replace its `rejectContractGap` calls with `apiClient` requests once endpoints exist.
+
+## App structure
+
+| Path                     | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `src/app/layouts/`       | Root layout with header navigation                               |
+| `src/pages/`             | Route screens: browse, item detail, report/edit, auth, dashboard |
+| `src/features/auth/`     | Current-user query, login/register/logout hooks, `RequireAuth`   |
+| `src/features/items/`    | Item queries, categories, card, form                             |
+| `src/features/claims/`   | Claim queries, claim form, finder review panel                   |
+| `src/components/ui/`     | Buttons, inputs, badges, spinner                                 |
+| `src/components/common/` | Empty and error states                                           |
+
+| Route                 | Access      | Description                                               |
+| --------------------- | ----------- | --------------------------------------------------------- |
+| `/`                   | Public      | Search and filter found items                             |
+| `/items/:id`          | Public      | Item details. Claim it, or review claims if you found it  |
+| `/items/new`          | Signed in   | Report a found item                                       |
+| `/items/:id/edit`     | Finder only | Edit a listing                                            |
+| `/dashboard`          | Signed in   | Items I found and my claims                               |
+| `/login`, `/register` | Public      | Authentication. Both accept `?next=` to return afterwards |
+
 ## Scripts
 
 | Command             | Description                          |
